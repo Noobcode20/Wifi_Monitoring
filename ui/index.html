@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#21808d">
+    <meta name="description" content="RuView experimental Wi-Fi CSI sensing interface">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>RuView · CSI Monitor</title>
+    <script>
+        // The supported local landing view is the measured CSI dashboard.
+        // Keep the historic feature gallery available only when explicitly requested.
+        if (new URLSearchParams(location.search).get('experimental') !== '1') {
+            location.replace('/ui/real-csi.html');
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <!-- Skip to main content link for keyboard/screen reader users -->
+    <a href="#dashboard" class="skip-to-content">Skip to main content</a>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header" role="banner">
+            <h1>RuView · CSI Monitor</h1>
+            <p class="subtitle">ESP32 CSI signal monitor</p>
+            <p class="subtitle">Use the <a href="/ui/real-csi.html">measured CSI dashboard</a> for current node packets and radio readings.</p>
+            <div class="header-info">
+                <span class="api-version" aria-label="API version"></span>
+                <span class="api-environment" aria-label="Environment"></span>
+                <span class="overall-health" role="status" aria-live="polite" aria-label="System health"></span>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs" role="tablist" aria-label="Main navigation">
+            <button class="nav-tab active" data-tab="dashboard" role="tab" aria-selected="true" aria-controls="dashboard">Dashboard</button>
+            <button class="nav-tab" data-tab="hardware" role="tab" aria-selected="false" aria-controls="hardware">Hardware</button>
+            <button class="nav-tab" data-tab="architecture" role="tab" aria-selected="false" aria-controls="architecture">Architecture</button>
+            <button class="nav-tab" data-tab="applications" role="tab" aria-selected="false" aria-controls="applications">Applications</button>
+            <button class="nav-tab" data-tab="sensing" role="tab" aria-selected="false" aria-controls="sensing">Sensing</button>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <section id="dashboard" class="tab-content active" role="tabpanel" aria-labelledby="dashboard">
+            <div class="hero-section">
+                <h2>ESP32 CSI monitor</h2>
+                <p class="hero-description">
+                    View hardware and server health. For live node freshness, measured RSSI, packet
+                    rates, and raw CSI amplitudes, open the <a href="/ui/real-csi.html">measured CSI dashboard</a>.
+                </p>
+                
+                <!-- Error container -->
+                <div class="error-container" style="display: none;"></div>
+
+                <!-- Live Status Panel -->
+                <div class="live-status-panel">
+                    <h3 data-i18n="dashboard.status">System Status</h3>
+                    <div class="status-grid">
+                        <div class="component-status" data-component="api">
+                            <span class="component-name">API Server</span>
+                            <span class="status-text">-</span>
+                            <span class="status-message"></span>
+                        </div>
+                        <div class="component-status" data-component="hardware">
+                            <span class="component-name">Hardware</span>
+                            <span class="status-text">-</span>
+                            <span class="status-message"></span>
+                        </div>
+                        <div class="component-status" data-component="streaming">
+                            <span class="component-name">Streaming</span>
+                            <span class="status-text">-</span>
+                            <span class="status-message"></span>
+                        </div>
+                        <div class="component-status" data-component="datasource" id="dashboard-datasource">
+                            <span class="component-name">Data Source</span>
+                            <span class="status-text">-</span>
+                            <span class="status-message"></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Hardware information -->
+        <section id="hardware" class="tab-content" role="tabpanel" aria-labelledby="hardware" aria-hidden="true">
+            <h2>ESP32 node measurements</h2>
+            <p>Node IDs, source IPs, packet freshness, measured RSSI, packet rate, sequence, and CSI amplitudes are shown in the <a href="/ui/real-csi.html">live CSI dashboard</a>.</p>
+            <p>The connected nodes send 2.4 GHz CSI frames. Antenna layouts, radio controls, and host resource usage are not measured by this page.</p>
+        </section>
+
+        <!-- Architecture Tab -->
+        <section id="architecture" class="tab-content" role="tabpanel" aria-labelledby="architecture" aria-hidden="true">
+            <h2>CSI receiver flow</h2>
+            <p>This setup receives ESP32 packets, validates their wire format, and displays measured packet and radio values.</p>
+            <ol>
+                <li>ESP32 nodes send raw CSI over the local Wi-Fi network.</li>
+                <li>The receiver checks node ID, frequency, dimensions, RSSI, and exact packet length.</li>
+                <li>The dashboard reports packet age, sequence, rate, RSSI, and I/Q amplitude magnitude.</li>
+                <li>Human presence inference is not validated by this dashboard.</li>
+            </ol>
+        </section>
+
+        <!-- Applications Tab -->
+        <section id="applications" class="tab-content" role="tabpanel" aria-labelledby="applications" aria-hidden="true">
+            <h2>Potential use cases · not implemented in this setup</h2>
+            <p>These are project ideas, not verified features of the local CSI monitor.</p>
+            
+            <div class="applications-grid">
+                <div class="app-card">
+                    <div class="app-icon">👴</div>
+                    <h3>Elderly Care Monitoring</h3>
+                    <p>Potential use: movement or fall monitoring. This setup has no validated fall detector or emergency alert.</p>
+                    <div class="app-features">
+                        <span class="feature-tag">Fall monitoring idea</span>
+                        <span class="feature-tag">Activity history idea</span>
+                        <span class="feature-tag">Alert integration idea</span>
+                    </div>
+                </div>
+
+                <div class="app-card">
+                    <div class="app-icon">🏠</div>
+                    <h3>Home Security Systems</h3>
+                    <p>Potential use: room intrusion or movement alerts. This setup has no validated intrusion detector or person tracker.</p>
+                    <div class="app-features">
+                        <span class="feature-tag">Intrusion alerts idea</span>
+                        <span class="feature-tag">Multiple people idea</span>
+                        <span class="feature-tag">Camera-free setup</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="implementation-note">
+                <h3>Implementation Considerations</h3>
+                <p>Any future use would require room calibration and validation against ground truth before making presence or safety claims.</p>
+            </div>
+        </section>
+
+        <!-- Sensing Tab -->
+        <section id="sensing" class="tab-content" role="tabpanel" aria-labelledby="sensing" aria-hidden="true"></section>
+
+    </div>
+
+    <!-- Error Toast -->
+    <div id="globalErrorToast" class="error-toast"></div>
+
+    <!-- Load application scripts as modules -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>

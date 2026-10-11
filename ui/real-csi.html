@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>RuView · Live CSI and presence</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090b0a;--panel:#0e1110;--line:#1b211e;--text:#f2f0e9;--muted:#99a59d;--cyan:#00c995;--green:#00c995;--amber:#f4b000;--red:#fa5555;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;--serif:Georgia,"Times New Roman",serif}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    main{display:flex;flex-direction:column;max-width:1220px;margin:auto;padding:32px 28px 64px}.top{order:0;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:20px}.eyebrow{color:var(--cyan);font:10px var(--mono);letter-spacing:.16em;text-transform:uppercase}.top h1{font:clamp(28px,3.5vw,38px)/1.15 var(--serif);letter-spacing:-.025em;margin:7px 0}.top h1 em{color:var(--cyan);font-weight:400}.sub{color:var(--muted);max-width:690px}.links{display:flex;gap:16px;white-space:nowrap}.links a{color:var(--cyan);text-decoration:none}.links a:hover{text-decoration:underline}
+    .banner{border:1px solid var(--line);background:#111412;border-radius:0;padding:12px 15px;margin:16px 0;color:#c5d5e6}.banner strong{color:var(--amber)}.banner.live{border-color:#174d3c}.banner.live strong{color:var(--green)}.banner.bad{border-color:#542b2b}.banner.bad strong{color:var(--red)}
+    .summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:0}.card{padding:16px}.label{font:10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.value{font:34px/1.15 var(--serif);letter-spacing:-.03em;margin-top:8px}.hint{font-size:12px;color:var(--muted);margin-top:5px}
+    .panel{padding:18px;margin-top:14px}.panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:12px}.panel h2{font:22px var(--serif);margin:0}.panel-head p{font-size:12px;color:var(--muted);margin:0}.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+    .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:680px}th{text-align:left;color:var(--muted);font:11px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:11px 10px;border-bottom:1px solid var(--line)}td{padding:13px 10px;border-bottom:1px solid #202c3a}tr:last-child td{border-bottom:0}.id{font:17px var(--mono);color:var(--cyan)}.state{font:11px var(--mono);padding:4px 7px;border-radius:6px;background:#253448;color:var(--muted)}.state.active{background:#163a2e;color:var(--green)}.state.stale{background:#382c1a;color:var(--amber)}.state.missing{background:#35232a;color:var(--red)}
+    .plot{width:100%;height:250px;display:block;background:#0b0d0c;border:1px solid var(--line);border-radius:0}.plot-note{font-size:12px;color:var(--muted);margin:8px 0 0}.plot-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}select{background:#0b0d0c;color:var(--text);border:1px solid var(--line);border-radius:0;padding:7px 9px}
+    .foot{color:var(--muted);font-size:12px;margin-top:18px}.foot a{color:var(--cyan)}.error{color:var(--red)}
+    .presence-panel{border-color:var(--line);background:#0e1110}.presence-head{align-items:flex-start}.presence-head h2{font-size:22px}.presence-state{font:11px var(--mono);padding:5px 9px;border-radius:0;background:#272214;color:var(--amber);white-space:nowrap}.presence-state.good{background:#10291f;color:var(--green)}.presence-state.bad{background:#2a1515;color:var(--red)}
+    #source-banner{order:1}.summary{order:2}.presence-panel{order:3}.main-data{order:4}.foot{order:5}.presence-panel:not(.show-setup) .steps,.presence-panel:not(.show-setup) .presence-actions,.presence-panel:not(.show-setup) .capture-line,.presence-panel:not(.show-setup) .notice,.presence-panel:not(.show-setup) .small-note,.presence-panel:not(.show-setup) .node-presence{display:none}.calibration-toggle{margin-top:12px}
+    .presence-grid{display:grid;grid-template-columns:1fr;gap:18px}.presence-result{border:1px solid var(--line);background:#0b0d0c;border-radius:0;padding:14px}.presence-result .value{font-size:24px;margin:2px 0}.presence-copy{font-size:12px;color:var(--muted);margin:7px 0}.steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.step{border:1px solid var(--line);background:#101311;border-radius:0;padding:9px;min-width:0}.step strong{display:block;font-size:12px}.step span{display:block;color:var(--muted);font-size:11px;margin-top:3px}.step.done{border-color:#174d3c}.step.current{border-color:var(--cyan);background:#10251d}.step.fail{border-color:#75414b}.presence-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}button{border:1px solid #087653;background:#075d43;color:#fff;border-radius:0;padding:8px 11px;font:inherit;font-size:12px;cursor:pointer}button.secondary{border-color:var(--line);background:#181b19}button.danger{border-color:#75414b;background:#35232a}button:disabled{opacity:.45;cursor:not-allowed}.capture-line{font-size:13px;margin-top:10px;color:#c5d5e6}.capture-line strong{color:var(--cyan)}.node-presence table{min-width:730px}.node-presence th,.node-presence td{padding:9px 7px;font-size:12px}.node-presence .id{font-size:14px}.small-note{color:var(--muted);font-size:11px;margin:8px 0 0}.notice{font-size:12px;color:var(--amber);margin-top:9px}.room-check{font-size:12px;color:var(--muted);margin-top:8px}
+    @media(max-width:820px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:720px){main{padding:22px 14px}.top{display:block}.links{margin-top:12px}.summary{grid-template-columns:1fr}.plot{height:200px}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div><div class="eyebrow">RuView / Hardware monitor</div><h1>Live CSI and room presence</h1><div class="sub">Validated UDP packets and radio measurements from your four ESP32 nodes. Room presence uses separate guided training and checks.</div></div>
+    <nav class="links"><a href="/api/v1/status" target="_blank" rel="noopener">Receiver details</a></nav>
+  </header>
+  <div id="source-banner" class="banner"><strong>Connecting…</strong> Checking server and CSI stream.</div>
+  <section class="panel presence-panel" aria-labelledby="presence-title">
+    <div class="panel-head presence-head"><div><h2 id="presence-title">Room presence</h2><p>Train from this room’s measured CSI, then check it with separate empty and occupied samples.</p></div><span id="presence-badge" class="presence-state">Checking calibration…</span></div>
+    <div class="presence-grid">
+      <div>
+        <div class="presence-result"><div class="label">Current room reading</div><div class="value" id="room-reading">Unknown</div><div class="presence-copy" id="room-explanation">Calibration state is loading. No presence result is assumed.</div><div class="room-check" id="room-check">Room check: not completed</div></div>
+        <button id="calibration-toggle" class="secondary calibration-toggle" aria-expanded="false">Set up room calibration</button>
+        <div class="steps" aria-label="Calibration steps">
+          <div class="step" id="step-empty"><strong>1 · Empty room</strong><span>Leave the covered room empty for 60 seconds.</span></div>
+          <div class="step" id="step-occupied"><strong>2 · Occupied room</strong><span>Walk normal paths for 15 seconds, then sit or stand still for 15 seconds.</span></div>
+          <div class="step" id="step-verify-empty"><strong>3 · Check empty</strong><span>Separate empty-room check.</span></div>
+          <div class="step" id="step-verify-occupied"><strong>4 · Check occupied</strong><span>Include a quiet sit or stand to check still presence.</span></div>
+        </div>
+        <div class="presence-actions"><button id="capture-empty" disabled>Start empty-room capture</button><button id="capture-occupied" disabled>Start walk-through capture</button><button id="verify-empty" class="secondary" disabled>Check an empty room</button><button id="verify-occupied" class="secondary" disabled>Check a walk-through</button><button id="cancel-capture" class="danger" hidden>Cancel capture</button><button id="reset-presence" class="secondary" disabled>Reset room calibration</button></div>
+        <div class="capture-line" id="capture-progress" aria-live="polite">Waiting for calibration service.</div>
+        <div class="notice">Keep all four ESP32 boards and the Wi-Fi access point fixed. Only begin the empty capture after everyone leaves the area covered by the boards. The walk-through capture lasts 30 seconds: walk normal room paths for the first 15 seconds, then sit or stand still near a typical occupied area for the last 15 seconds.</div>
+        <p class="small-note">The receiver uses real CSI packets. Firmware presence and score are experimental. A passed room check only describes these separate checks; it is not a general accuracy claim.</p>
+      </div>
+      <div class="node-presence table-wrap"><table><thead><tr><th>Node</th><th>Room-trained signal</th><th>Firmware estimate · experimental</th><th>Freshness</th><th>Capture frames</th></tr></thead><tbody id="presence-node-rows"><tr><td colspan="5">Waiting for presence service…</td></tr></tbody></table><p class="small-note" id="node-layout-note">A node or CSI layout rejected during training will be shown here when the service reports it.</p></div>
+    </div>
+  </section>
+  <section class="summary" aria-label="Live summary">
+    <article class="card"><div class="label">Fresh CSI nodes</div><div class="value" id="active-count">—</div><div class="hint">A node is fresh only while CSI arrived within the last 5 seconds.</div></article>
+    <article class="card"><div class="label">Mean measured RSSI</div><div class="value" id="mean-rssi">—</div><div class="hint">Mean across currently fresh nodes.</div></article>
+    <article class="card"><div class="label">CSI frame change</div><div class="value" id="activity">—</div><div class="hint" id="activity-note">Measured amplitude change; see room presence card for calibration status.</div></article>
+  </section>
+  <section class="panel main-data">
+    <div class="panel-head"><h2>Node links</h2><p>Values below are read from the sensing server’s per-node CSI state.</p></div>
+    <div class="table-wrap"><table><thead><tr><th>Node / source IP</th><th>CSI link</th><th>Last CSI</th><th>Sequence</th><th>RSSI</th><th>Measured rate</th><th>Subcarriers</th></tr></thead><tbody id="node-rows"><tr><td colspan="7">Waiting for node data…</td></tr></tbody></table></div>
+    <p class="plot-note" id="packet-note">Waiting for validated packets.</p>
+  </section>
+  <section class="panel main-data">
+    <div class="panel-head"><h2>Latest CSI amplitude</h2><p>Magnitudes from the most recent published raw frame.</p></div>
+    <div class="plot-row"><label class="label" for="node-select">Node</label><select id="node-select"><option value="1">Node 1</option><option value="2">Node 2</option><option value="3">Node 3</option><option value="4">Node 4</option></select></div>
+    <canvas id="amplitude-plot" class="plot" aria-label="CSI amplitude by subcarrier"></canvas>
+    <p class="plot-note" id="plot-note">Waiting for a raw CSI amplitude frame.</p>
+  </section>
+  <p class="foot">Presence estimates are experimental and specific to this placement. People, pets or objects, Wi-Fi traffic, and interference can affect CSI; the system does not count people. Firmware estimates are experimental. Packet rates are measured over the last five seconds. RSSI is reported by the ESP32 radio; amplitude is the magnitude of its raw signed I/Q samples. Raw CSI and capture samples stay in memory; a compact room profile is saved privately on this Mac.</p>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const colors = ['#51d6cf','#ffcd72','#a78bfa','#78dfa3'];
+  let lastFrames = new Map();
+  let presenceSnapshot = null;
+  let tickBusy = false;
+  let presenceBusy = false;
+  let presenceReadBusy = false;
+  let presenceRetryAt = 0;
+  let presenceRequestEpoch = 0;
+  let presenceActionError = '';
+  window.freshCsiNodeCount = 0;
+  const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
+  const fmt = (v, digits=1) => isNumber(v) ? v.toFixed(digits) : '—';
+  const age = (v) => isNumber(v) ? `${(v/1000).toFixed(1)} s ago` : '—';
+  const get = async (path) => { const r = await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(2500)}); if(!r.ok) throw new Error(`${path}: HTTP ${r.status}`); return r.json(); };
+  const statusClass = (node) => node?.csi_status === 'active' && isNumber(node.csi_last_seen_ms) && node.csi_last_seen_ms < 5000 ? 'active' : node ? 'stale' : 'missing';
+  const api = async (path, options={}) => { const r=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(4000),...options}); const body=await r.json().catch(()=>({})); if(!r.ok)throw new Error(body.error||`${path}: HTTP ${r.status}`);return body; };
+  const safeText=(value,fallback='—')=>typeof value==='string'&&value.length?value:fallback;
+  function captureAction(action){ return async()=>{if(presenceBusy)return;presenceBusy=true;presenceActionError='';presenceRequestEpoch++;$('capture-progress').textContent='Sending capture request…';['capture-empty','capture-occupied','verify-empty','verify-occupied','reset-presence'].forEach(id=>$(id).disabled=true);try{presenceSnapshot=await api('/api/v1/presence/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});renderPresence(presenceSnapshot);}catch(e){presenceActionError=`Capture could not start: ${e.message}`;$('capture-progress').textContent=presenceActionError;}finally{presenceBusy=false;if(presenceActionError)await loadPresence();}}; }
+  function renderPresenceUnavailable(message){presenceSnapshot=null;$('capture-progress').textContent=message;$('presence-badge').className='presence-state bad';$('presence-badge').textContent='Unavailable';$('room-reading').textContent='Unknown';$('room-explanation').textContent='Calibration status could not be read.';$('room-check').textContent='Room check: not completed';$('cancel-capture').hidden=true;$('presence-node-rows').innerHTML='<tr><td colspan="5">Presence service unavailable.</td></tr>';$('node-layout-note').textContent='Node calibration details are unavailable.';['capture-empty','capture-occupied','verify-empty','verify-occupied','reset-presence'].forEach(id=>$(id).disabled=true);}
+  function renderPresence(data){
+    const valid=!!data&&typeof data==='object'&&typeof data.status==='string';
+    if(!valid){renderPresenceUnavailable('Presence service response is unavailable or incomplete. No presence result is shown.');return;}
+    presenceSnapshot=data;
+    const status=data.status, capture=data.capture&&typeof data.capture==='object'?data.capture:{}, model=data.model&&typeof data.model==='object'?data.model:{};
+    const signalReady=window.lastSourceIsReal===true&&window.freshCsiNodeCount>=2&&Number(data.eligible_nodes)>=2;
+    const trained=['trained_unverified','room_check_partial','room_check_passed','room_check_failed'].includes(status);
+    const knownResult=signalReady&&['empty','occupied'].includes(data.presence)?data.presence:'unknown';
+    $('room-reading').textContent=!trained||knownResult==='unknown'?'Unknown':status==='room_check_passed'?knownResult==='empty'?'Room check: appears empty':'Room check: presence indicated':'Unverified · '+(knownResult==='empty'?'appears empty':'presence indicated');
+    $('room-explanation').textContent=!signalReady?'Unknown because fewer than two current trained links or a live CSI source is available.':trained?status==='room_check_passed'?`Room-trained estimate from ${Number(data.eligible_nodes)||0} participating links. It passed the separate room checks.`:status==='room_check_failed'?`Room-trained estimate from ${Number(data.eligible_nodes)||0} participating links. The room checks did not pass; repeat a check with the boards and access point fixed.`:`Room-trained estimate from ${Number(data.eligible_nodes)||0} participating links. The separate room checks are not complete.`:'Unknown means there is not enough current, trained evidence.';
+    const passed=status==='room_check_passed'||data.room_check_passed===true;
+    const bad=['training_failed','capture_failed','room_check_failed'].includes(status);
+    const badge=$('presence-badge');badge.className=`presence-state${passed?' good':bad?' bad':''}`;
+    const statusLabels={not_trained:'Not trained',awaiting_occupied:'Ready for walk-through',trained_unverified:'Trained · check needed',room_check_partial:'One separate check recorded',room_check_failed:'Room checks need repeating',training_failed:'Training needs attention',capture_failed:'Capture stopped'};
+    badge.textContent=passed?'Room check passed':bad?'Needs attention':statusLabels[status]||status.replaceAll('_',' ');
+    const checks=model.room_checks&&typeof model.room_checks==='object'?model.room_checks:{};
+    const checkSummary=(label)=>{const o=checks[label]?.outcomes;if(!o)return `${label}: not recorded`;return `${label}: ${Number(o.correct)||0} matching, ${Number(o.incorrect)||0} different, ${Number(o.unknown)||0} unknown out of ${Number(checks[label].windows)||0} windows`;};
+    $('room-check').textContent=`Room check: ${checkSummary('empty')} · ${checkSummary('occupied')}${passed?' · both checks passed':''}`;
+    const steps={empty:['empty','awaiting_occupied','arming_occupied','occupied','trained_unverified','room_check_partial','room_check_passed','room_check_failed'].includes(status),occupied:['occupied','trained_unverified','room_check_partial','room_check_passed','room_check_failed'].includes(status),ve:!!model.room_checks?.empty, vo:!!model.room_checks?.occupied};
+    [['step-empty',steps.empty],['step-occupied',steps.occupied],['step-verify-empty',steps.ve],['step-verify-occupied',steps.vo]].forEach(([id,done])=>$(id).className=`step${done?' done':''}`);
+    const active=typeof capture.phase==='string'&&capture.phase&&capture.phase!=='idle'&&capture.phase!=='complete'&&capture.phase!=='failed';
+    const remain=isNumber(capture.seconds_remaining)?Math.max(0,Math.ceil(capture.seconds_remaining)):null;
+    const duration=isNumber(capture.duration_seconds)?capture.duration_seconds:null;
+    const delay=isNumber(capture.start_delay_seconds)?capture.start_delay_seconds:0;
+    const phase=active?capture.phase.replaceAll('_',' '):'';
+    const frames=capture.frames&&typeof capture.frames==='object'?capture.frames:{};
+    const frameText=[1,2,3,4].map(id=>`N${id} ${Number(frames[id])||0}`).join(' · ');
+    const progress=$('capture-progress');progress.replaceChildren();
+    const invalidFrames=capture.invalid_frames&&typeof capture.invalid_frames==='object'?Object.values(capture.invalid_frames).reduce((sum,value)=>sum+(Number(value)||0),0):Number(capture.invalid_frames)||0;
+    if(active){const line=document.createElement('div');line.textContent=`${phase} · ${remain===null?'Collecting':`${remain}s remaining`}${duration?` of ${duration}s`:''}${delay&&phase.startsWith('arming')?' · Please leave the room during the 15s lead-in':''}`;line.style.color='#51d6cf';const detail=document.createElement('div');detail.className='small-note';detail.textContent=`Frames: ${frameText} · invalid: ${invalidFrames}`;progress.append(line,detail);}else if(presenceActionError){progress.className='capture-line error';progress.textContent=presenceActionError;}else if(data.error==='Capture cancelled.'){progress.className='capture-line';progress.textContent='Capture cancelled. Start again when ready.';}else if(data.error){progress.className='capture-line error';progress.textContent=status==='training_failed'&&String(data.error).includes('separated model')?'The empty and occupied CSI looked too similar for the required links. Keep board and router positions fixed and retry captures along the usual paths; no threshold was lowered.':safeText(data.error);}else{progress.className='capture-line';progress.textContent=status==='training_failed'?'Training did not complete. Review the node and layout details below before retrying.':status==='awaiting_occupied'?'Empty capture complete. Start the walk-through capture when ready.':status==='trained_unverified'?'Room training complete. Run the separate empty and occupied checks.':status==='room_check_partial'?'One check is recorded. Complete or repeat either check.':status==='room_check_passed'?'Both separate room checks passed. You can repeat either check.':'No capture is running.';}
+    const sourceIsReal=window.lastSourceIsReal===true;
+    const enough=window.freshCsiNodeCount===4&&sourceIsReal;
+    const controlsAllowed=!active&&!presenceBusy&&enough;
+    const set=(id,ok)=>$(id).disabled=!(controlsAllowed&&ok);
+    set('capture-empty',['not_trained','training_failed'].includes(status));
+    set('capture-occupied',['awaiting_occupied','empty'].includes(status));
+    set('verify-empty',['trained_unverified','room_check_partial','room_check_failed','room_check_passed'].includes(status));
+    set('verify-occupied',['trained_unverified','room_check_partial','room_check_failed','room_check_passed'].includes(status));
+    $('reset-presence').disabled=active||presenceBusy||!(Number(model.nodes)>0||status!=='not_trained');
+    $('cancel-capture').hidden=!active;
+    const nodeRows=Array.isArray(data.nodes)?data.nodes:[];
+    const byId=new Map(nodeRows.map(n=>[Number(n.node_id),n]));
+    const rows=document.createDocumentFragment();
+    for(let id=1;id<=4;id++){
+      const n=byId.get(id)||{}, trained=n.presence&&typeof n.presence==='object'?n.presence:{}, edge=n.edge&&typeof n.edge==='object'?n.edge:null;
+      const fresh=edge&&edge.fresh===true&&isNumber(edge.received_age_ms)&&edge.received_age_ms<5000;
+      const trainedLabel=`${safeText(trained.label,'Not trained')}${trained.reason?` · ${trained.reason}`:''}${isNumber(trained.confidence)?` · decision margin ${fmt(trained.confidence,2)}`:''}`;
+      const diag=edge?`${fresh?(edge.presence_flag===true?'Yes':edge.presence_flag===false?'No':'—'):'Unknown · stale'} · score ${fmt(edge.presence_score,2)} · motion ${fresh?safeText(String(edge.motion_flag??'—')):'Unknown'}`:'No firmware estimate';
+      const ageLabel=edge&&isNumber(edge.received_age_ms)?`${(edge.received_age_ms/1000).toFixed(1)}s ago${fresh?'':' · stale'}`:'No recent estimate';
+      const nodeFrames=frames[id]??n.window_frames??0;
+      const vals=[`Node ${id}${n.source_ip?` · ${n.source_ip}`:''}`,trainedLabel,diag,ageLabel,String(Number(nodeFrames)||0)];
+      const row=document.createElement('tr');vals.forEach((v,i)=>{const td=document.createElement('td');td.className=i===0?'id':'mono';td.textContent=v;row.append(td);});rows.append(row);
+    }
+    $('presence-node-rows').replaceChildren(rows);
+    const rejected=model.rejected&&typeof model.rejected==='object'?Object.entries(model.rejected):[];
+    const layouts=Array.isArray(model.layouts)?model.layouts:[];
+    const reasonText=(reason)=>({poor_training_separation:'signals do not separate',insufficient_node_frames:'not enough valid frames',insufficient_layout_samples:'not enough matching layout samples'}[reason]||String(reason));
+    const poorSeparation=rejected.some(([,reason])=>reason==='poor_training_separation');
+    const issues=[...rejected.map(([k,v])=>`${k}: ${reasonText(v)}`),...layouts.filter(x=>x&&x.accepted===false).map(x=>`layout: ${reasonText(x.reason||'not accepted')}`)];
+    const trainedNodes=Array.isArray(model.nodes)?model.nodes.length:Number(model.nodes)||0;
+    const trainedLayouts=Array.isArray(model.layouts)?model.layouts.length:Number(model.layouts)||0;
+    $('node-layout-note').textContent=poorSeparation?`The empty and occupied CSI looked too similar for the required links. Keep board and router positions fixed and retry captures along the usual paths; no threshold was lowered. ${issues.join(' · ')}`:status==='training_failed'&&String(data.error||'').includes('separated model')?'Training needs enough matching, separated CSI layouts from all four nodes. Keep the boards and router fixed and repeat both captures along usual room paths and occupied areas.':issues.length?`Training needs attention: ${issues.join(' · ')}`:`${Number(data.eligible_nodes)||0}/4 current participating links · ${trainedNodes} trained node(s) · ${trainedLayouts} trained CSI layout(s).`;
+  }
+  async function loadPresence(){if(presenceBusy||presenceReadBusy||Date.now()<presenceRetryAt)return;presenceReadBusy=true;const epoch=++presenceRequestEpoch;try{const data=await api('/api/v1/presence');presenceRetryAt=0;if(epoch===presenceRequestEpoch&&!presenceBusy)renderPresence(data);}catch(e){presenceRetryAt=Date.now()+5000;if(epoch===presenceRequestEpoch&&!presenceBusy)renderPresenceUnavailable(`Presence service unavailable: ${e.message}`);}finally{presenceReadBusy=false;}}
+  function renderRows(nodes, frames) {
+    const byId = new Map(nodes.map(n => [Number(n.node_id),n]));
+    const frameById = new Map(frames.map(n => [Number(n.node_id),n]));
+    const rows = document.createDocumentFragment();
+    for (let id=1; id<=4; id++) {
+      const n=byId.get(id), f=frameById.get(id), klass=statusClass(n);
+      const stamp = n ? age(n.csi_last_seen_ms) : 'No packet seen';
+      const amp = Array.isArray(f?.amplitude) ? f.amplitude : [];
+      const row=document.createElement('tr');
+      const cells=[`${id}${n?.source_ip ? ' · '+n.source_ip : ''}`,klass === 'active' ? 'CSI ACTIVE' : klass === 'stale' ? 'STALE' : 'NO PACKET',stamp,n?.csi_sequence ?? '—',isNumber(n?.rssi_dbm) ? `${fmt(n.rssi_dbm)} dBm` : '—',isNumber(n?.packet_rate_hz) ? `${fmt(n.packet_rate_hz)} /s` : '—',n?.subcarriers ?? (amp.length || '—')];
+      cells.forEach((value,i)=>{const td=document.createElement('td');td.className=i===0?'id':'mono';if(i===1){const state=document.createElement('span');state.className=`state ${klass}`;state.textContent=value;td.append(state);}else td.textContent=value;row.append(td);});
+      rows.append(row);
+    }
+    $('node-rows').replaceChildren(rows);
+    const active=nodes.filter(n=>statusClass(n)==='active');
+    $('active-count').textContent=`${active.length} / 4`;
+    const rssi=active.map(n=>Number(n.rssi_dbm)).filter(v=>Number.isFinite(v)&&v!==0);
+    $('mean-rssi').textContent=rssi.length ? `${fmt(rssi.reduce((a,b)=>a+b,0)/rssi.length)} dBm` : '—';
+  }
+  function draw() {
+    const c=$('amplitude-plot'), rect=c.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    c.width=Math.max(1,Math.round(rect.width*dpr)); c.height=Math.max(1,Math.round(rect.height*dpr));
+    const ctx=c.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,rect.width,rect.height);
+    const id=Number($('node-select').value), values=lastFrames.get(id);
+    if(!values?.length){$('plot-note').textContent=`No fresh raw CSI frame is available for node ${id}. Select a node with active CSI to view its measured frame.`;return;}
+    $('plot-note').textContent=`Measured frame: ${values.length} subcarriers · node ${id}. No smoothing or synthetic samples added.`;
+    const pad=24, w=rect.width-2*pad, h=rect.height-2*pad;
+    const finite=values.map(Number).filter(Number.isFinite); if(!finite.length)return;
+    const min=Math.min(...finite), max=Math.max(...finite), span=max-min||1;
+    ctx.strokeStyle='#263548';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,pad);ctx.lineTo(pad,pad+h);ctx.lineTo(pad+w,pad+h);ctx.stroke();
+    ctx.strokeStyle=colors[(id-1)%colors.length];ctx.lineWidth=2;ctx.beginPath();
+    finite.forEach((v,i)=>{const x=pad+(i/Math.max(1,finite.length-1))*w,y=pad+h-((v-min)/span)*h;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+    ctx.fillStyle='#91a2b8';ctx.font='11px ui-monospace,monospace';ctx.fillText(fmt(max,1),4,pad+4);ctx.fillText(fmt(min,1),4,pad+h);
+  }
+  async function refresh() {
+    if(tickBusy)return; tickBusy=true;
+    try {
+      const [status,nodesReply,latest]=await Promise.all([get('/api/v1/status'),get('/api/v1/nodes'),get('/api/v1/sensing/latest')]);
+      const nodes=Array.isArray(nodesReply.nodes)?nodesReply.nodes:[];
+      const frames=Array.isArray(latest.nodes)?latest.nodes:[];
+      lastFrames=new Map(frames.map(n=>[Number(n.node_id),Array.isArray(n.amplitude)?n.amplitude:[]]));
+      renderRows(nodes,frames);
+      window.freshCsiNodeCount=nodes.filter(n=>statusClass(n)==='active').length;
+      const banner=$('source-banner');
+      const state=status.source_state;
+      window.lastSourceIsReal=state==='live_verified'||state==='live_unverified';
+      if(!window.lastSourceIsReal&&presenceSnapshot)renderPresence(presenceSnapshot);
+      if(state==='live_verified'||state==='live_unverified') {
+        banner.className='banner live';
+        banner.innerHTML=`<strong>REAL CSI STREAM · ${nodes.filter(n=>statusClass(n)==='active').length} fresh node(s)</strong> Hardware packets are reaching this server. The room presence card shows calibration and separate check status.`;
+      } else if(state==='synthetic') {
+        banner.className='banner bad';banner.innerHTML='<strong>SIMULATED SOURCE</strong> This server is producing synthetic data; it is not a live hardware reading.';
+      } else if(state==='stale'||state==='disconnected') {
+        banner.className='banner bad';banner.innerHTML='<strong>NO FRESH CSI</strong> Waiting for ESP32 packets. The table marks stale nodes explicitly.';
+      } else {
+        banner.className='banner';banner.innerHTML='<strong>BACKEND SOURCE NOT VERIFIED</strong> This server does not expose the current provenance API; do not trust its live/pose claims.';
+      }
+      const change=latest.measured_signal_change_pct;
+      $('activity').textContent=isNumber(change) ? `${fmt(change)} %` : '—';
+      $('activity-note').textContent='RMS radio-amplitude change from the previous matching frame; this metric is not the room-presence result.';
+      $('packet-note').textContent=isNumber(status.accepted_csi_packets) ? `${status.accepted_csi_packets.toLocaleString()} valid CSI packets received · ${status.rejected_packets ?? 0} rejected · simulation disabled` : 'Packet counters unavailable.';
+      draw();
+    } catch(e) {
+      const banner=$('source-banner');banner.className='banner bad';banner.innerHTML=`<strong>API UNAVAILABLE</strong> <span class="error"></span>`;banner.querySelector('.error').textContent=e.message;
+      renderRows([],[]); $('active-count').textContent='—'; $('mean-rssi').textContent='—';$('activity').textContent='—';
+      $('packet-note').textContent='Receiver unavailable. Previous readings have been cleared.';
+      lastFrames=new Map();draw();
+      window.lastSourceIsReal=false;
+      window.freshCsiNodeCount=0;
+      if(presenceSnapshot)renderPresence(presenceSnapshot);
+    } finally { tickBusy=false; }
+  }
+  $('capture-empty').addEventListener('click',captureAction('empty'));
+  $('calibration-toggle').addEventListener('click',()=>{const panel=document.querySelector('.presence-panel');const expanded=panel.classList.toggle('show-setup');$('calibration-toggle').setAttribute('aria-expanded',String(expanded));$('calibration-toggle').textContent=expanded?'Hide calibration details':'Set up room calibration';});
+  $('capture-occupied').addEventListener('click',captureAction('occupied'));
+  $('verify-empty').addEventListener('click',captureAction('verify_empty'));
+  $('verify-occupied').addEventListener('click',captureAction('verify_occupied'));
+  $('reset-presence').addEventListener('click',async()=>{if(presenceBusy)return;presenceBusy=true;presenceActionError='';presenceRequestEpoch++;try{presenceSnapshot=await api('/api/v1/presence/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});renderPresence(presenceSnapshot);}catch(e){presenceActionError=`Reset failed: ${e.message}`;$('capture-progress').textContent=presenceActionError;}finally{presenceBusy=false;if(presenceActionError)await loadPresence();}});
+  $('cancel-capture').addEventListener('click',async()=>{if(presenceBusy)return;presenceBusy=true;presenceActionError='';presenceRequestEpoch++;try{presenceSnapshot=await api('/api/v1/presence/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cancel'})});renderPresence(presenceSnapshot);}catch(e){presenceActionError=`Cancel failed: ${e.message}`;$('capture-progress').textContent=presenceActionError;}finally{presenceBusy=false;if(presenceActionError)await loadPresence();}});
+  $('node-select').addEventListener('change',draw); window.addEventListener('resize',draw);
+  refresh();loadPresence();setInterval(refresh,1000);setInterval(loadPresence,1000);
+})();
+</script>
+</body>
+</html>
